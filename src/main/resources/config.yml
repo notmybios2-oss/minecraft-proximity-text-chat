@@ -1,0 +1,37 @@
+# ProxChat - proximity speech bubbles (1vs100 V2, roadmap P4).
+# Read at enable and on /proxchat reload; every value applies live (consumers hold suppliers).
+# Out-of-range values are clamped with a console warning - a config typo never blocks enabling.
+# This file is never written back by the plugin; keys missing from a deployed copy fall back
+# to their defaults (that per-key fallback is how new keys splice into old deployments).
+bubbles:
+  # Hard server-side visibility radius in blocks (same world only). Admission is
+  # server-authoritative: a modified client cannot read bubbles beyond this radius,
+  # because it never receives them. view-range below is only a client-side cull belt.
+  radius-blocks: 24.0
+  # Seconds before a bubble fades. Expiry is scheduled per bubble; a 0.5 s reconciler
+  # backstops lost tasks.
+  lifetime-seconds: 8
+  # Bubble stack depth per player: newest at the bottom, oldest falls off the top.
+  max-per-player: 3
+  # Mounted-display translation above the RIDE anchor, not the head - owner-tuned live
+  # during the slice-1 eyeball session (pc-005). Change only with an in-game re-check.
+  height-above-head: 1.2
+  # Vertical distance between stacked bubbles (blocks).
+  stack-spacing: 0.30
+  # Sneaking hides the sneaker's bubbles; they reappear on rising if lifetime remains (Q1).
+  hide-on-sneak: true
+  # Maximum message length in CODE POINTS, counted after sanitization. Longer input is
+  # rejected with the red French line, whose number tracks this value automatically (Q4).
+  max-message-length: 96
+  # Client text wrap width in pixels - the only line-break authority (newlines never
+  # survive sanitization).
+  line-width: 200
+  # Display view range as a fraction of the client's 64-block entity render base.
+  # Cull belt only; the hard guarantee is the admission radius above.
+  view-range: 0.5
+  # Per-player minimum interval between accepted messages (ms); excess is dropped
+  # silently (Q10 anti-churn guard - every bubble costs an entity spawn + packet fan-out).
+  # Deliberately NOT applied to the overlong-reject line (pc-007 N2): a reject is one
+  # message to the abuser's own client - no entity, no fan-out - and Paper's built-in
+  # chat spam kicker bounds the flood upstream.
+  min-message-interval-ms: 750
