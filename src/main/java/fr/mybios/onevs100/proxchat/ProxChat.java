@@ -14,11 +14,10 @@ import org.bukkit.plugin.ServicePriority;
 import org.bukkit.plugin.java.JavaPlugin;
 
 /**
- * Proximity text chat for the 1vs100 V2 event (roadmap P4, ADR 0024): chat becomes speech
- * bubbles above the speaker — radius-limited, wall-occluded, anonymous by construction (no
- * sender label exists anywhere). Slice 2 shipped the render pipeline; slice 3 adds the game
- * integration surface: the frozen {@link ProxChatService}, crash-safe mode persistence and
- * config reload.
+ * Proximity text chat: chat becomes speech bubbles above the speaker — radius-limited,
+ * wall-occluded, anonymous by construction (no sender label exists anywhere). Ships the render
+ * pipeline plus the integration surface: the frozen {@link ProxChatService}, crash-safe mode
+ * persistence and config reload.
  */
 public final class ProxChat extends JavaPlugin {
 
@@ -61,9 +60,15 @@ public final class ProxChat extends JavaPlugin {
                 new PlayerLifecycleListener(bubbles, rateGuard), this);
 
         PluginCommand command = getCommand("proxchat");
-        ProxChatCommand executor = new ProxChatCommand(this, controller, bubbles, () -> config);
-        command.setExecutor(executor);
-        command.setTabCompleter(executor);
+        if (command == null) {
+            // Only reachable if plugin.yml ever drifts from the command name (AUDIT-2): fail
+            // soft — bubbles and the service API don't depend on the admin lever.
+            getLogger().severe("command 'proxchat' missing from plugin.yml — admin lever unavailable");
+        } else {
+            ProxChatCommand executor = new ProxChatCommand(this, controller, bubbles, () -> config);
+            command.setExecutor(executor);
+            command.setTabCompleter(executor);
+        }
 
         // Mid-game (re)enable: players already online never fired PlayerJoinEvent for us.
         for (Player online : getServer().getOnlinePlayers()) {
@@ -119,9 +124,14 @@ public final class ProxChat extends JavaPlugin {
     public void onDisable() {
         getServer().getServicesManager().unregisterAll(this);
         if (bubbles != null) {
-            // Best-effort: schedulers may refuse during shutdown, but displays are non-persistent
-            // (byte-level proven, pc-005) so nothing can reach disk either way.
-            bubbles.clearAll();
+            // Never touch schedulers from a disabled plugin — Folia refuses the registration
+            // (finale F2). A stopping server removes the non-persistent displays itself; a hot
+            // disable leaves them to despawn on chunk unload (tagged proxchat.bubble for sweeps).
+            int speakers = bubbles.shutdown();
+            if (speakers > 0 && !getServer().isStopping()) {
+                getLogger().warning("hot disable with bubble state for " + speakers
+                        + " speaker(s) — displays despawn on chunk unload");
+            }
         }
         getLogger().info("ProxChat disabled.");
     }

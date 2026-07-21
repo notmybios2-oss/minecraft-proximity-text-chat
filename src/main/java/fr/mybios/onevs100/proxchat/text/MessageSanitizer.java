@@ -8,9 +8,11 @@ import java.text.Normalizer;
  *
  * Pipeline (pc-001 §3.4, supervisor-approved): NFC-normalize → map every whitespace-class code
  * point (including newlines: client lineWidth wrapping is the only line-break authority, pc-002)
- * to a plain space → drop ISO controls and the invisible/bidi set (U+200B–200F, U+202A–202E,
- * U+2060–2064, U+FEFF, U+00AD) → collapse space runs and trim → count CODE POINTS against the
- * cap. Over-cap input is REJECTED, never truncated (owner Q4 ruling).
+ * to a plain space → drop ISO controls, the invisible/bidi set (U+200B–200F, U+202A–202E,
+ * U+2060–2064, U+FEFF, U+00AD) and U+00A7 `§` (legacy formatting-code lead-in — some client
+ * render paths honor §-codes even in raw display text; AUDIT-1) → collapse space runs and trim →
+ * count CODE POINTS against the cap. Over-cap input is REJECTED, never truncated (owner Q4
+ * ruling).
  *
  * The OK text is only ever rendered via {@code Component.text(literal)} — never deserialized as
  * MiniMessage/legacy markup (the known abuse vector). French accents pass untouched (NFC; the
@@ -63,6 +65,7 @@ public final class MessageSanitizer {
                 || (cp >= 0x202A && cp <= 0x202E)
                 || (cp >= 0x2060 && cp <= 0x2064)
                 || cp == 0xFEFF
-                || cp == 0x00AD;
+                || cp == 0x00AD
+                || cp == 0x00A7; // § — client-honored formatting lead-in, never renderable content
     }
 }

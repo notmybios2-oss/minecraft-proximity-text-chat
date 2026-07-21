@@ -1,4 +1,4 @@
-# ProxChat - proximity speech bubbles (1vs100 V2, roadmap P4).
+# ProxChat - proximity speech bubbles.
 # Read at enable and on /proxchat reload; every value applies live (consumers hold suppliers).
 # Out-of-range values are clamped with a console warning - a config typo never blocks enabling.
 # This file is never written back by the plugin; keys missing from a deployed copy fall back

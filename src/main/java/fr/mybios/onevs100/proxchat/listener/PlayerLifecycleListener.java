@@ -37,7 +37,9 @@ public final class PlayerLifecycleListener implements Listener {
         rateGuard.forget(event.getPlayer().getUniqueId());
     }
 
-    @EventHandler
+    // ignoreCancelled: a cancelled death (resurrection-style plugins) leaves no corpse, so the
+    // speaker's bubbles may live out their lifetime (AUDIT-4).
+    @EventHandler(ignoreCancelled = true)
     public void onDeath(PlayerDeathEvent event) {
         bubbles.clearStack(event.getEntity()); // nothing lingers on a corpse (owner spec)
     }

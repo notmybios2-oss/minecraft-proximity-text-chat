@@ -1,12 +1,12 @@
 name: ProxChat
-version: 0.3.0
+version: 0.4.0
 main: fr.mybios.onevs100.proxchat.ProxChat
-# api-version 1.13 is the post-flattening floor; proven to load on Folia 26.1.2 (event-core uses it).
+# api-version 1.13 is the post-flattening floor; proven to load on Folia 26.1.2.
 api-version: "1.13"
 # Folia is region-threaded: this MUST be declared or the server refuses to enable the plugin.
 folia-supported: true
 authors: [MyBios]
-description: 1vs100 V2 proximity text chat - speech bubbles above the speaker (roadmap P4).
+description: Proximity text chat - speech bubbles above the speaker.
 commands:
   proxchat:
     description: ProxChat admin lever (admin surface - English replies).

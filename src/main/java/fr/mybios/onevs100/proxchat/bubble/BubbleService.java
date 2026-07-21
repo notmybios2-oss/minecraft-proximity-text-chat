@@ -183,6 +183,27 @@ public final class BubbleService {
         pb.admitted.clear();
     }
 
+    /**
+     * onDisable path ONLY (finale F2): drops all bookkeeping WITHOUT touching any scheduler —
+     * Folia refuses task registration from a disabled plugin, so the clearAll fan-out is illegal
+     * here. Safe because displays are non-persistent: a stopping server removes them itself; a
+     * hot disable leaves them to despawn on chunk unload (the caller warns). Heartbeat cancel is
+     * thread-safe and does not register anything.
+     *
+     * @return number of speakers that still had bubble state (concurrent-map read, exact enough
+     *         for the caller's diagnostic)
+     */
+    public int shutdown() {
+        for (ScheduledTask heartbeat : heartbeats.values()) {
+            heartbeat.cancel();
+        }
+        heartbeats.clear();
+        snapshots.clear();
+        int speakers = bubbles.size();
+        bubbles.clear();
+        return speakers;
+    }
+
     /** Any thread: fans the clear out to every owner's region thread. */
     public void clearAll() {
         for (UUID id : bubbles.keySet()) {
@@ -376,14 +397,22 @@ public final class BubbleService {
         viewer.getScheduler().run(plugin, t -> {
             for (TextDisplay display : displays) {
                 try {
+                    // Finale F1: a display whose carrier is mid-world-transfer lives in a
+                    // foreign region — show/hide reads its state and would trip the cross-region
+                    // guard (moonrise ERROR dump). Skip: fail direction is "no bubble" — a
+                    // skipped hide is covered by the display's own removal broadcast, a skipped
+                    // show by reconcile despawning the dismounted bubble.
+                    if (!display.isValid() || !org.bukkit.Bukkit.isOwnedByCurrentRegion(display)) {
+                        continue;
+                    }
                     if (show) {
                         viewer.showEntity(plugin, display);
                     } else {
                         viewer.hideEntity(plugin, display);
                     }
                 } catch (Throwable ignored) {
-                    // Display died between capture and execution — the tracker broadcast its
-                    // removal already; stale bookkeeping on the viewer is harmless.
+                    // Backstop: display died between capture and execution — the tracker
+                    // broadcast its removal already; stale bookkeeping on the viewer is harmless.
                 }
             }
         }, null);

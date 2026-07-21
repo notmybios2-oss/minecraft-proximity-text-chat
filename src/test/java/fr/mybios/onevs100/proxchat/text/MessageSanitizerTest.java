@@ -26,6 +26,7 @@ class MessageSanitizerTest {
     private static final String ESC = cp(0x001B);
     private static final String DEL = cp(0x007F);
     private static final String NBSP = cp(0x00A0);
+    private static final String SECTION = cp(0x00A7);
     private static final String SOFT_HYPHEN = cp(0x00AD);
     private static final String COMBINING_ACUTE = cp(0x0301);
     private static final String EN_QUAD = cp(0x2000);
@@ -112,6 +113,16 @@ class MessageSanitizerTest {
     }
 
     @Test
+    void legacySectionSignIsDropped() {
+        // § is the legacy formatting-code lead-in; some client render paths honor §-codes even
+        // in raw display text (AUDIT-1). Only § itself is stripped — the code LETTER stays,
+        // which is what the abuser typed, rendered literally and formatting-dead.
+        assertEquals("kobfuscated", run(SECTION + "kobfuscated").text());
+        assertEquals("alb", run("a" + SECTION + "lb").text());
+        assertEquals(Verdict.EMPTY, run(SECTION + SECTION + SECTION).verdict());
+    }
+
+    @Test
     void zwjEmojiFamiliesDegradeByDesign() {
         // Stripping U+200D is intentional (steganography channel): a family becomes components.
         assertEquals(MAN + WOMAN, run(MAN + ZWJ + WOMAN).text());
@@ -155,7 +166,7 @@ class MessageSanitizerTest {
         // zero-width, astral planes, exotic whitespace. Whatever goes in, an OK verdict must
         // come out trimmed, single-line, invisible-free and within the cap.
         Random rng = new Random(42);
-        int[] nasty = {0x00, 0x07, 0x0A, 0x0D, 0x1B, 0x7F, 0x85, 0x9F, 0xA0, 0xAD,
+        int[] nasty = {0x00, 0x07, 0x0A, 0x0D, 0x1B, 0x7F, 0x85, 0x9F, 0xA0, 0xA7, 0xAD,
                 0x200B, 0x200D, 0x200F, 0x202E, 0x2060, 0x2064, 0x3000, 0xFEFF,
                 'a', 'Z', '9', 0xE9, 0xE7, '!', ' ', 0x1F600, 0x1F9D1, 0x10FFFD};
         for (int round = 0; round < 3000; round++) {
@@ -176,8 +187,9 @@ class MessageSanitizerTest {
                         assertFalse(Character.isISOControl(c),
                                 "control survived: U+" + Integer.toHexString(c));
                         assertFalse(c == 0x200B || c == 0x200D || c == 0x200F || c == 0x202E
-                                        || c == 0x2060 || c == 0x2064 || c == 0xFEFF || c == 0xAD,
-                                "invisible survived: U+" + Integer.toHexString(c));
+                                        || c == 0x2060 || c == 0x2064 || c == 0xFEFF || c == 0xAD
+                                        || c == 0xA7,
+                                "stripped code point survived: U+" + Integer.toHexString(c));
                         assertFalse(c != ' ' && (Character.isWhitespace(c) || Character.isSpaceChar(c)),
                                 "exotic whitespace survived: U+" + Integer.toHexString(c));
                     });
