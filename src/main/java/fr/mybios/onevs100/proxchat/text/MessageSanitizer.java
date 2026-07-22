@@ -6,13 +6,12 @@ import java.text.Normalizer;
  * Turns untrusted chat input into a plain, single-line, bounded string — or a verdict that no
  * bubble may render. Pure static logic, no Bukkit types (unit-fuzzable).
  *
- * Pipeline (pc-001 §3.4, supervisor-approved): NFC-normalize → map every whitespace-class code
- * point (including newlines: client lineWidth wrapping is the only line-break authority, pc-002)
- * to a plain space → drop ISO controls, the invisible/bidi set (U+200B–200F, U+202A–202E,
- * U+2060–2064, U+FEFF, U+00AD) and U+00A7 `§` (legacy formatting-code lead-in — some client
- * render paths honor §-codes even in raw display text; AUDIT-1) → collapse space runs and trim →
- * count CODE POINTS against the cap. Over-cap input is REJECTED, never truncated (owner Q4
- * ruling).
+ * Pipeline: NFC-normalize → map every whitespace-class code point (including newlines: client
+ * lineWidth wrapping is the only line-break authority) to a plain space → drop ISO controls,
+ * the invisible/bidi set (U+200B–200F, U+202A–202E, U+2060–2064, U+FEFF, U+00AD) and U+00A7 `§`
+ * (legacy formatting-code lead-in — some client render paths honor §-codes even in raw display
+ * text) → collapse space runs and trim → count CODE POINTS against the cap. Over-cap input is
+ * REJECTED, never truncated (deliberate: silent truncation misquotes the speaker).
  *
  * The OK text is only ever rendered via {@code Component.text(literal)} — never deserialized as
  * MiniMessage/legacy markup (the known abuse vector). French accents pass untouched (NFC; the

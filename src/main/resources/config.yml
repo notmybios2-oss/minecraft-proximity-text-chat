@@ -13,8 +13,8 @@ bubbles:
   lifetime-seconds: 8
   # Bubble stack depth per player: newest at the bottom, oldest falls off the top.
   max-per-player: 3
-  # Mounted-display translation above the RIDE anchor, not the head - owner-tuned live
-  # during the slice-1 eyeball session (pc-005). Change only with an in-game re-check.
+  # Mounted-display translation above the RIDE anchor, not the head - tuned live in-game.
+  # Change only with an in-game re-check.
   height-above-head: 1.2
   # Vertical distance between stacked bubbles (blocks).
   stack-spacing: 0.30
@@ -30,10 +30,10 @@ bubbles:
   # Cull belt only; the hard guarantee is the admission radius above.
   view-range: 0.5
   # Per-player minimum interval between accepted messages (ms); excess is dropped
-  # silently (Q10 anti-churn guard - every bubble costs an entity spawn + packet fan-out).
-  # Deliberately NOT applied to the overlong-reject line (pc-007 N2): a reject is one
-  # message to the abuser's own client - no entity, no fan-out - and Paper's built-in
-  # chat spam kicker bounds the flood upstream.
+  # silently (anti-churn guard - every bubble costs an entity spawn + packet fan-out).
+  # Deliberately NOT applied to the overlong-reject line: a reject is one message to
+  # the abuser's own client - no entity, no fan-out - and Paper's built-in chat spam
+  # kicker bounds the flood upstream.
   min-message-interval-ms: 750
 # Server-side conversation record: one JSON line per rendered bubble, written to
 # plugins/ProxChat/conversation/bubbles-YYYY-MM-DD.jsonl (daily files, tail-friendly).

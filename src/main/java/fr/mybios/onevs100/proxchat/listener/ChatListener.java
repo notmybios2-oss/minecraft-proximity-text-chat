@@ -19,12 +19,11 @@ import org.bukkit.event.Listener;
 import org.bukkit.plugin.Plugin;
 
 /**
- * The chat seam (pc-002 Q7 contract). On prod, EventCore's LockdownListener cancels EVERY
- * AsyncChatEvent at LOWEST in every game state — the vanilla broadcast is dead before we run,
- * and its javadoc reserves player speech for this plugin. We listen at HIGH with
+ * The chat seam. A host plugin locking chat down may cancel EVERY AsyncChatEvent at LOWEST —
+ * the vanilla broadcast is then dead before we run. We listen at HIGH with
  * {@code ignoreCancelled = false}, READ the cancelled event, and NEVER un-cancel: the broadcast
  * stays dead no matter what this plugin does or fails to do (fail-closed anonymity). Standalone
- * (the rig has no EventCore) we cancel ourselves whenever we intercept — on prod that cancel is
+ * (no host plugin) we cancel ourselves whenever we intercept — under a lockdown that cancel is
  * an idempotent no-op on an already-cancelled event.
  *
  * Handler thread: async (network chat). Nothing here reads a live entity: text extraction and
@@ -34,8 +33,8 @@ import org.bukkit.plugin.Plugin;
  */
 public final class ChatListener implements Listener {
 
-    /** Owner-worded Q4 reject line (pc-003) — the plugin's ONLY player-facing string, French by
-     *  house rule. The number tracks max-message-length so a config retune never makes it lie. */
+    /** The overlong-reject line — the plugin's ONLY player-facing string, French by deployment
+     *  rule. The number tracks max-message-length so a config retune never makes it lie. */
     private static final String REJECT_FR_PREFIX = "Pas de messages au dessus de ";
     private static final String REJECT_FR_SUFFIX = " caractères";
 
@@ -58,7 +57,7 @@ public final class ChatListener implements Listener {
     public void onChat(AsyncChatEvent event) {
         Mode mode = modes.current();
         if (!mode.intercepts()) {
-            return; // OFF: untouched (on prod EventCore keeps the broadcast dead regardless)
+            return; // OFF: untouched (a host lockdown keeps the broadcast dead regardless)
         }
         event.setCancelled(true); // never the reverse — see class javadoc
         if (!mode.renders()) {

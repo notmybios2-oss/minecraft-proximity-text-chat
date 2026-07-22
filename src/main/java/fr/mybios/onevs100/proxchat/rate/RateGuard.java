@@ -6,9 +6,9 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.LongSupplier;
 
 /**
- * Per-player minimum interval between accepted messages (pc-002 Q10: a bubble costs an entity
- * spawn plus a per-viewer showEntity fan-out — vanilla spam protection doesn't price that).
- * Excess messages are dropped silently.
+ * Per-player minimum interval between accepted messages (a bubble costs an entity spawn plus
+ * a per-viewer showEntity fan-out — vanilla spam protection doesn't price that). Excess
+ * messages are dropped silently.
  *
  * CAS-claimed so concurrent chat events for one player (async chat threads) can never
  * double-claim a slot. The clock is injectable for tests; production uses System.nanoTime
@@ -23,7 +23,7 @@ public final class RateGuard {
     private final LongSupplier nanoClock;
     private final ConcurrentHashMap<UUID, AtomicLong> lastAccepted = new ConcurrentHashMap<>();
 
-    /** The interval is a SUPPLIER so a config reload retunes the guard live (slice 3). */
+    /** The interval is a SUPPLIER so a config reload retunes the guard live. */
     public RateGuard(LongSupplier minIntervalMillis, LongSupplier nanoClock) {
         this.minIntervalMillis = minIntervalMillis;
         this.nanoClock = nanoClock;

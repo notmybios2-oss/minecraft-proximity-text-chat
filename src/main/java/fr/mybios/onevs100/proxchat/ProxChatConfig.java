@@ -4,11 +4,10 @@ import java.util.function.Consumer;
 import org.bukkit.configuration.ConfigurationSection;
 
 /**
- * Immutable view of config.yml (pc-001 §3.7 keys; height default is the owner-tuned pc-005
- * value). Parsed once at enable — slice 3 adds /proxchat reload, which re-parses and swaps the
- * whole record (readers hold a Supplier, never a stale field). Out-of-range values are clamped
- * with an English warning rather than refused: a typo in a deployed config must never keep the
- * plugin from enabling mid-event.
+ * Immutable view of config.yml (height default is the in-game-tuned value). Parsed once at
+ * enable; /proxchat reload re-parses and swaps the whole record (readers hold a Supplier,
+ * never a stale field). Out-of-range values are clamped with an English warning rather than
+ * refused: a typo in a deployed config must never keep the plugin from enabling.
  */
 public record ProxChatConfig(
         double radiusBlocks,

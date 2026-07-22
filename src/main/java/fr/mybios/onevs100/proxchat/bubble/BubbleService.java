@@ -26,7 +26,7 @@ import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
 /**
- * The bubble pipeline: spawn/mount (pc-005: MOUNT is the production render path), stack shifts,
+ * The bubble pipeline: spawn/mount (MOUNT is the production render path), stack shifts,
  * expiry, the 0.5 s reconciler, and server-authoritative per-viewer admission.
  *
  * THREAD MODEL (the part Folia makes load-bearing):
@@ -41,20 +41,20 @@ import org.joml.Vector3f;
  *       the viewer's thread. The entity tracker then maintains actual pairing from that
  *       bookkeeping on its own ticks (canSee), which self-heals any transient miss.</li>
  *   <li>Display REMOVAL always rides the display's own scheduler: correct from any thread, and a
- *       schedule refusal is the proven thread-safe dead signal (pc-004/pc-005).</li>
+ *       schedule refusal is the proven thread-safe dead signal.</li>
  * </ul>
  *
- * Failure containment (pc-001 §3.5): scheduled expiry is the fast path, the heartbeat reconciler
- * is the backstop, and any maintenance failure fails toward "remove this player's bubbles" —
- * never toward frozen text. Off-server nothing can linger by construction: displays are
- * non-persistent (byte-level proven in pc-005).
+ * Failure containment: scheduled expiry is the fast path, the heartbeat reconciler is the
+ * backstop, and any maintenance failure fails toward "remove this player's bubbles" — never
+ * toward frozen text. Off-server nothing can linger by construction: displays are
+ * non-persistent (byte-level verified against region files).
  */
 public final class BubbleService {
 
-    /** Identification tag for defensive sweeps/debugging (pc-001 §3.1). */
+    /** Identification tag for defensive sweeps/debugging. */
     public static final String BUBBLE_TAG = "proxchat.bubble";
 
-    /** 0.5 s heartbeat = snapshot publish + reconcile + admission re-evaluation (pc-001 §3.3/§3.5). */
+    /** 0.5 s heartbeat = snapshot publish + reconcile + admission re-evaluation. */
     private static final long HEARTBEAT_PERIOD_TICKS = 10L;
 
     private final Plugin plugin;
@@ -126,7 +126,7 @@ public final class BubbleService {
         ProxChatConfig cfg = config.get();
         PlayerBubbles pb = bubbles.computeIfAbsent(speaker.getUniqueId(), id -> new PlayerBubbles());
         // Mode re-check AFTER the map insertion — the entry is the synchronization point with a
-        // concurrent leave-ON clearAll (first-bubble strand race, pc-008 review): a flip landing
+        // concurrent leave-ON clearAll (first-bubble strand race): a flip landing
         // before the insert is seen by this read; a flip landing after it finds the entry in
         // keySet and queues a clearStack behind this very task on the same entity scheduler.
         // (The listener's own re-check happens before the insert, so it cannot close this.)
@@ -142,7 +142,7 @@ public final class BubbleService {
         Location at = speaker.getLocation();
         TextDisplay display;
         try {
-            // Consumer configures BEFORE the entity is added to the world (flash-dome precedent):
+            // Consumer configures BEFORE the entity is added to the world:
             // no client can ever receive it in a default-visible state.
             display = speaker.getWorld().spawn(at, TextDisplay.class, d -> {
                 d.text(Component.text(text)); // literal only — NEVER parsed as markup
@@ -150,7 +150,7 @@ public final class BubbleService {
                 d.setSeeThrough(false);       // client occludes text behind blocks (owner: not through walls)
                 d.setShadowed(false);
                 d.setLineWidth(cfg.lineWidth());
-                d.setPersistent(false);       // never written to disk — byte-level proven (pc-005)
+                d.setPersistent(false);       // never written to disk — byte-level verified
                 d.setVisibleByDefault(false); // per-viewer admission only, no first-tick flash
                 d.setViewRange(cfg.viewRange()); // client cull belt; the hard guarantee is admission
                 d.setTransformation(transformFor(0, cfg));
@@ -222,7 +222,7 @@ public final class BubbleService {
     }
 
     /**
-     * onDisable path ONLY (finale F2): drops all bookkeeping WITHOUT touching any scheduler —
+     * onDisable path ONLY: drops all bookkeeping WITHOUT touching any scheduler —
      * Folia refuses task registration from a disabled plugin, so the clearAll fan-out is illegal
      * here. Safe because displays are non-persistent: a stopping server removes them itself; a
      * hot disable leaves them to despawn on chunk unload (the caller warns). Heartbeat cancel is
@@ -283,7 +283,7 @@ public final class BubbleService {
                 return;
             }
             if (!renders.getAsBoolean()) {
-                // Mode backstop (pc-008 review): OFF/SUPPRESSED render nothing, so any bubble
+                // Mode backstop: OFF/SUPPRESSED render nothing, so any bubble
                 // that slipped past a leave-ON clear dies within one heartbeat period.
                 clearStack(player);
                 return;
@@ -353,7 +353,7 @@ public final class BubbleService {
         }, null, cfg.lifetimeTicks());
     }
 
-    /** Safe from any thread; a schedule refusal means the display is already gone (pc-004). */
+    /** Safe from any thread; a schedule refusal means the display is already gone. */
     private void despawn(Bubble bubble) {
         TextDisplay display = bubble.display();
         display.getScheduler().run(plugin, t -> display.remove(), null);
@@ -453,7 +453,7 @@ public final class BubbleService {
         viewer.getScheduler().run(plugin, t -> {
             for (TextDisplay display : displays) {
                 try {
-                    // Finale F1: a display whose carrier is mid-world-transfer lives in a
+                    // A display whose carrier is mid-world-transfer lives in a
                     // foreign region — show/hide reads its state and would trip the cross-region
                     // guard (moonrise ERROR dump). Skip: fail direction is "no bubble" — a
                     // skipped hide is covered by the display's own removal broadcast, a skipped

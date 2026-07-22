@@ -26,7 +26,7 @@ class ProxChatConfigTest {
 
     @Test
     void defaultsMatchTheApprovedSpec() {
-        // pc-001 §3.7 values, except height-above-head = the owner-tuned pc-005 ride-anchor 1.2.
+        // The approved spec values; height-above-head is the in-game-tuned ride-anchor 1.2.
         ProxChatConfig d = ProxChatConfig.DEFAULTS;
         assertEquals(24.0, d.radiusBlocks());
         assertEquals(8, d.lifetimeSeconds());
@@ -38,7 +38,7 @@ class ProxChatConfigTest {
         assertEquals(200, d.lineWidth());
         assertEquals(0.5f, d.viewRange());
         assertEquals(750, d.minMessageIntervalMs());
-        // Conversation log (pc-016 rulings): ships OFF, keep-forever, admits recorded.
+        // Conversation log ships OFF, keep-forever, admits recorded.
         assertFalse(d.conversationLogEnabled());
         assertEquals(0, d.conversationRetentionDays());
         assertTrue(d.conversationLogAdmits());

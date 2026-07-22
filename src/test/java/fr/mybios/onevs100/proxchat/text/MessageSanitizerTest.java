@@ -76,7 +76,7 @@ class MessageSanitizerTest {
         assertEquals("a".repeat(96), run(padded).text());
     }
 
-    // ---------------------------------------------------------------- line collapsing (pc-002)
+    // ---------------------------------------------------------------- line collapsing
 
     @Test
     void multiLinePasteCollapsesToOneLine() {
@@ -115,7 +115,7 @@ class MessageSanitizerTest {
     @Test
     void legacySectionSignIsDropped() {
         // § is the legacy formatting-code lead-in; some client render paths honor §-codes even
-        // in raw display text (AUDIT-1). Only § itself is stripped — the code LETTER stays,
+        // in raw display text. Only § itself is stripped — the code LETTER stays,
         // which is what the abuser typed, rendered literally and formatting-dead.
         assertEquals("kobfuscated", run(SECTION + "kobfuscated").text());
         assertEquals("alb", run("a" + SECTION + "lb").text());

@@ -12,9 +12,9 @@ import org.bukkit.event.player.PlayerToggleSneakEvent;
 /**
  * Player lifecycle → bubble state. These sync events all fire on the player's owning region
  * thread, which is exactly where BubbleService wants them (state confinement). World switches
- * have NO event here on purpose: Folia's PlayerChangedWorldEvent is dead for portals
- * (known-issues), so the Q3 clear-on-switch rides the heartbeat reconciler instead (riding-link
- * break + world-id comparison).
+ * have NO event here on purpose: Folia's PlayerChangedWorldEvent does not fire for portals
+ * (verified live), so the Q3 clear-on-switch rides the heartbeat reconciler instead
+ * (riding-link break + world-id comparison).
  */
 public final class PlayerLifecycleListener implements Listener {
 
@@ -38,7 +38,7 @@ public final class PlayerLifecycleListener implements Listener {
     }
 
     // ignoreCancelled: a cancelled death (resurrection-style plugins) leaves no corpse, so the
-    // speaker's bubbles may live out their lifetime (AUDIT-4).
+    // speaker's bubbles may live out their lifetime.
     @EventHandler(ignoreCancelled = true)
     public void onDeath(PlayerDeathEvent event) {
         bubbles.clearStack(event.getEntity()); // nothing lingers on a corpse (owner spec)

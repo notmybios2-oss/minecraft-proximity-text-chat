@@ -9,15 +9,13 @@ import java.nio.file.StandardCopyOption;
 import java.util.function.Supplier;
 
 /**
- * Crash-safe self-persistence for the mode (pc-002 Q8: "matches the house crash-safe-state
- * precedent"), deliberately CALIBRATED DOWN from event-core's {@code GameStatePersistence}:
- * that file guards bans/alive/day where silent loss un-bans everyone mid-event, so it carries
- * epoch markers, a .bak chain and read-back verification. This file guards ONE enum whose
- * worst-case loss is "boots OFF" — which is the fail-closed first-boot default anyway, is loud
- * (the boot log states the restore outcome), and is self-correcting (EventCore's mode drive or
- * one admin command re-asserts it). So: atomic write + strict versioned parse + fail-LOUD-to-OFF
- * on anything unreadable, and none of the epoch machinery. If this file ever guards more than
- * the mode, re-run that calibration.
+ * Crash-safe self-persistence for the mode, deliberately calibrated to what it guards: ONE enum
+ * whose worst-case loss is "boots OFF" — which is the fail-closed first-boot default anyway, is
+ * loud (the boot log states the restore outcome), and is self-correcting (a host plugin's mode
+ * drive or one admin command re-asserts it). So: atomic write + strict versioned parse +
+ * fail-LOUD-to-OFF on anything unreadable, and no heavier machinery (no epoch markers, no .bak
+ * chain, no read-back verification). If this file ever guards more than the mode, re-run that
+ * calibration.
  *
  * <p>Write is atomic: serialize → temp file → {@code ATOMIC_MOVE} (plain replace where the
  * filesystem lacks it). {@link #persistCurrent} is synchronized and reads the live mode INSIDE
@@ -39,7 +37,7 @@ public final class ModeStore {
 
     /** Restore outcomes — the caller logs each differently (first boot is not a warning). */
     public enum Outcome {
-        /** No file: genuine first boot. Mode is OFF by design (pc-002 Q8). */
+        /** No file: genuine first boot. Mode is OFF by design (fail-closed). */
         FIRST_BOOT,
         /** File parsed; {@code mode} is the restored value. */
         RESTORED,

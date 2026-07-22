@@ -7,12 +7,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import fr.mybios.onevs100.proxchat.api.Mode;
 import org.junit.jupiter.api.Test;
 
-/** Mode machine (pc-003 slice-2 unit list). Persistence round-trip: ModeStoreTest (slice 3). */
+/** Mode machine transitions. Persistence round-trip: ModeStoreTest. */
 class ModeMachineTest {
 
     @Test
     void firstBootIsOff() {
-        assertEquals(Mode.OFF, new ModeMachine().current()); // pc-002 Q8: fail-closed
+        assertEquals(Mode.OFF, new ModeMachine().current()); // fail-closed first boot
     }
 
     @Test

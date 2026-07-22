@@ -12,7 +12,7 @@ import org.junit.jupiter.api.Test;
 /**
  * The single transition path behind {@link fr.mybios.onevs100.proxchat.api.ProxChatService}:
  * leaving ON clears exactly once, every actual change persists, no-ops do nothing. These rules
- * hold for BOTH levers (admin command, EventCore drive) because both go through this class.
+ * hold for BOTH levers (admin command, host-plugin drive) because both go through this class.
  */
 class ModeControllerTest {
 
@@ -38,7 +38,7 @@ class ModeControllerTest {
         controller.setMode(Mode.SUPPRESSED); // OFF -> SUPPRESSED must not
         assertEquals(1, clears.get());
         controller.setMode(Mode.ON);
-        controller.setMode(Mode.SUPPRESSED); // ON -> SUPPRESSED clears too (pc-007 #4)
+        controller.setMode(Mode.SUPPRESSED); // ON -> SUPPRESSED clears too
         assertEquals(2, clears.get());
     }
 

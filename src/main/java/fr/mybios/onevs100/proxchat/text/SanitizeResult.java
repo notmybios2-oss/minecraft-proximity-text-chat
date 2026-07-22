@@ -3,7 +3,7 @@ package fr.mybios.onevs100.proxchat.text;
 /**
  * Outcome of {@link MessageSanitizer#sanitize}. {@code text} is non-empty exactly when the
  * verdict is {@link Verdict#OK} — rejected input never travels further than this record
- * (nothing is stored or logged; messages exist only as short-lived entities, pc-001 §3.8).
+ * (rejected text is never stored, logged, or rendered).
  */
 public record SanitizeResult(Verdict verdict, String text) {
 

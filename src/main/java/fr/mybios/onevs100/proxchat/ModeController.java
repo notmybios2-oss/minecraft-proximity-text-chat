@@ -7,8 +7,8 @@ import java.util.function.Consumer;
 
 /**
  * The single mode-transition path — the {@link ProxChatService} implementation that BOTH the
- * admin command and EventCore's mode drive go through, so leaving-ON-clears and persistence can
- * never diverge between the two levers. Pure wiring (no Bukkit imports): the clear fan-out and
+ * admin command and a host plugin's mode drive go through, so leaving-ON-clears and persistence
+ * can never diverge between the two levers. Pure wiring (no Bukkit imports): the clear fan-out and
  * the async persist hop are injected by {@link ProxChat}, which keeps every transition rule
  * unit-testable.
  *
@@ -40,7 +40,7 @@ public final class ModeController implements ProxChatService {
         if (previous != target) {
             if (previous == Mode.ON) {
                 // Leaving ON: SUPPRESSED means "show nothing" and OFF must not strand text
-                // for up to lifetime-seconds either (ratified judgment call, pc-007 #4).
+                // for up to lifetime-seconds either (deliberate judgment call).
                 clearAllAction.run();
             }
             persistAction.accept(target);

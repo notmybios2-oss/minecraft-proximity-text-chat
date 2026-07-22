@@ -46,7 +46,7 @@ public final class ProxChat extends JavaPlugin {
         this.modeStore = new ModeStore(getDataFolder().toPath().resolve("mode.dat"));
 
         // Crash-safe restore BEFORE listeners/commands exist, so nothing can observe a
-        // pre-restore mode. First boot / unreadable file = OFF (pc-002 Q8; loud when unreadable).
+        // pre-restore mode. First boot / unreadable file = OFF (fail-closed; loud when unreadable).
         ModeStore.Restore restore = modeStore.load();
         modes.set(restore.mode());
         switch (restore.outcome()) {
@@ -54,7 +54,7 @@ public final class ProxChat extends JavaPlugin {
             case UNREADABLE -> getLogger().severe("mode: OFF — " + restore.detail());
         }
 
-        // The single transition path for BOTH levers (admin command + EventCore's drive).
+        // The single transition path for BOTH levers (admin command + a host plugin's drive).
         ModeController controller =
                 new ModeController(modes, bubbles::clearAll, mode -> persistModeAsync());
         getServer().getServicesManager()
@@ -70,7 +70,7 @@ public final class ProxChat extends JavaPlugin {
 
         PluginCommand command = getCommand("proxchat");
         if (command == null) {
-            // Only reachable if plugin.yml ever drifts from the command name (AUDIT-2): fail
+            // Only reachable if plugin.yml ever drifts from the command name: fail
             // soft — bubbles and the service API don't depend on the admin lever.
             getLogger().severe("command 'proxchat' missing from plugin.yml — admin lever unavailable");
         } else {
@@ -89,14 +89,14 @@ public final class ProxChat extends JavaPlugin {
                 + " lifetime=" + config.lifetimeSeconds() + "s"
                 + " max-per-player=" + config.maxPerPlayer()
                 + " max-length=" + config.maxMessageLength()
-                + " (bubbles render only in mode ON; service registered for EventCore)");
+                + " (bubbles render only in mode ON; ProxChatService registered)");
     }
 
     /**
      * Re-reads config.yml and swaps the live snapshot (all consumers hold suppliers). Clamp
      * warnings go to the console log AND the sink (the admin who ran /proxchat reload). The
      * deployed file is NEVER written back — no saveConfig anywhere: regenerating a deployed
-     * config wholesale is banned (house rule), and per-key defaults already splice missing keys.
+     * config wholesale destroys operator edits, and per-key defaults already splice missing keys.
      */
     public ProxChatConfig reloadConfiguration(Consumer<String> warnSink) {
         reloadConfig();
@@ -133,8 +133,8 @@ public final class ProxChat extends JavaPlugin {
     public void onDisable() {
         getServer().getServicesManager().unregisterAll(this);
         if (bubbles != null) {
-            // Never touch schedulers from a disabled plugin — Folia refuses the registration
-            // (finale F2). A stopping server removes the non-persistent displays itself; a hot
+            // Never touch schedulers from a disabled plugin — Folia refuses the registration.
+            // A stopping server removes the non-persistent displays itself; a hot
             // disable leaves them to despawn on chunk unload (tagged proxchat.bubble for sweeps).
             int speakers = bubbles.shutdown();
             if (speakers > 0 && !getServer().isStopping()) {

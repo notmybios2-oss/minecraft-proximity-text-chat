@@ -1,19 +1,18 @@
 package fr.mybios.onevs100.proxchat.api;
 
 /**
- * Plugin-wide chat mode (pc-001 §3.6). Part of the frozen {@link ProxChatService} surface —
- * EventCore compiles against this enum, so names and semantics must not change (pc-003 slice 3).
+ * Plugin-wide chat mode. Part of the frozen {@link ProxChatService} surface — host plugins
+ * compile against this enum, so names and semantics must not change.
  *
- * <p><b>OFF ≡ SUPPRESSED to players on prod</b>: EventCore's lockdown cancels every chat
- * broadcast at LOWEST in every game state, so in both modes players see no chat and no bubble —
- * the two are observably identical. They differ in <i>mechanism</i>, which matters standalone
- * and for fail posture: OFF leaves the event untouched (on a bare server vanilla chat would
- * flow), while SUPPRESSED actively cancels and swallows it (chat stays dead even with no
- * lockdown underneath). The game drives SUPPRESSED when even a bubble would reveal a hidden
- * presence (pause/stasis, end-theater window).
+ * <p><b>OFF ≡ SUPPRESSED to players under a host lockdown</b>: a host plugin cancelling every
+ * chat broadcast at LOWEST makes both modes show no chat and no bubble — observably identical.
+ * They differ in <i>mechanism</i>, which matters standalone and for fail posture: OFF leaves
+ * the chat event untouched (on a bare server vanilla chat would flow), while SUPPRESSED
+ * actively cancels and swallows it (chat stays dead even with no lockdown underneath). A host
+ * drives SUPPRESSED when even a bubble would reveal a hidden presence.
  */
 public enum Mode {
-    /** Inert: chat events untouched. On prod EventCore still cancels every broadcast at LOWEST. */
+    /** Inert: chat events untouched (a host lockdown may still keep the broadcast dead). */
     OFF,
     /** Intercept chat and render proximity bubbles. */
     ON,

@@ -13,7 +13,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 /**
- * Crash-safe mode persistence (pc-003 slice 3). Every unreadable-file shape must land on a loud
+ * Crash-safe mode persistence. Every unreadable-file shape must land on a loud
  * OFF, never an exception and never a silent wrong mode.
  */
 class ModeStoreTest {

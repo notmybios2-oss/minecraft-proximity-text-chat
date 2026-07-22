@@ -7,7 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
-/** The stack machine (pc-003 slice-2 unit list): newest bottom, oldest off the top. */
+/** The stack machine: newest bottom, oldest off the top. */
 class BubbleStackTest {
 
     private static final int MAX = 3; // production default
@@ -36,7 +36,7 @@ class BubbleStackTest {
         stack.push("a", 3);
         stack.push("b", 3);
         stack.push("c", 3);
-        // A config retune (slice 3 reload) can lower the cap mid-flight: one push settles it.
+        // A config retune (live reload) can lower the cap mid-flight: one push settles it.
         assertEquals(List.of("b", "a"), stack.push("d", 2));
         assertEquals(List.of("d", "c"), stack.elements());
     }

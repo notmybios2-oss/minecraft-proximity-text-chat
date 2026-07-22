@@ -17,11 +17,10 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
 
 /**
- * Op-only admin lever — English replies (admin surface, house rule). Complete as of slice 3:
- * status, the three mode flips, clear-all and reload. Mode flips go through the same
- * {@link ProxChatService} controller as EventCore's drive, so leaving-ON-clears and persistence
- * hold no matter which lever moved the mode. Safe from console: flips are atomic and clears fan
- * out via entity schedulers.
+ * Op-only admin lever — English replies (admin surface): status, the three mode flips,
+ * clear-all and reload. Mode flips go through the same {@link ProxChatService} controller as a
+ * host plugin's drive, so leaving-ON-clears and persistence hold no matter which lever moved
+ * the mode. Safe from console: flips are atomic and clears fan out via entity schedulers.
  */
 public final class ProxChatCommand implements CommandExecutor, TabCompleter {
 

@@ -5,8 +5,8 @@ import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Holds the current {@link Mode}. Read from the async chat thread and region threads, written
- * from any thread (command, console, EventCore's drive) — hence atomic. First boot is OFF
- * (pc-002 Q8: fail-closed until the game, or an admin, says otherwise); {@link ModeStore}
+ * from any thread (command, console, a host plugin's drive) — hence atomic. First boot is OFF
+ * (fail-closed until the host plugin, or an admin, says otherwise); {@link ModeStore}
  * restores the persisted mode over this default at enable. All transitions go through
  * {@link ModeController} — only boot-time restore writes here directly (no side effects owed).
  */

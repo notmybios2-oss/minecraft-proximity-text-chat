@@ -1,9 +1,8 @@
 package fr.mybios.onevs100.proxchat.api;
 
 /**
- * The FROZEN integration surface (pc-002 Q8, pc-003 slice 3, ADR 0024 §5). EventCore's mode
- * drive is built against exactly this interface — changing it after the slice-3 merge is a
- * breaking change to another plugin and needs a supervisor round trip first.
+ * The FROZEN integration surface. Host plugins build their mode drive against exactly this
+ * interface — changing it is a breaking change to other plugins and must be treated as such.
  *
  * <p><b>Registration:</b> ProxChat registers an implementation with Bukkit's
  * {@code ServicesManager} at {@code ServicePriority.Normal} during {@code onEnable} and
@@ -61,7 +60,7 @@ public interface ProxChatService {
     }
 
     /**
-     * Removes every live bubble without touching the mode (host surface, pc-001 §3.6).
+     * Removes every live bubble without touching the mode.
      * Fans out to each speaker's region thread; safe from any thread.
      */
     void clearAll();

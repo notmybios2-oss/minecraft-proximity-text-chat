@@ -13,7 +13,7 @@ class RateGuardTest {
     private static final long INTERVAL_MS = 750;
 
     private final AtomicLong clock = new AtomicLong(); // fake monotonic nanos
-    private final AtomicLong intervalMs = new AtomicLong(INTERVAL_MS); // supplier-fed (slice 3 reload)
+    private final AtomicLong intervalMs = new AtomicLong(INTERVAL_MS); // supplier-fed (live reload)
     private final RateGuard guard = new RateGuard(intervalMs::get, clock::get);
     private final UUID alice = UUID.randomUUID();
     private final UUID bob = UUID.randomUUID();
@@ -75,7 +75,7 @@ class RateGuardTest {
 
     @Test
     void intervalChangeAppliesLive() {
-        // /proxchat reload retunes the guard without rebuilding it (slice 3): the interval is
+        // /proxchat reload retunes the guard without rebuilding it: the interval is
         // re-read per attempt, so an already-claimed window shrinks or grows with the config.
         assertTrue(guard.tryAcquire(alice));
         advanceMillis(500);
