@@ -35,3 +35,17 @@ bubbles:
   # message to the abuser's own client - no entity, no fan-out - and Paper's built-in
   # chat spam kicker bounds the flood upstream.
   min-message-interval-ms: 750
+# Server-side conversation record: one JSON line per rendered bubble, written to
+# plugins/ProxChat/conversation/bubbles-YYYY-MM-DD.jsonl (daily files, tail-friendly).
+# Each line carries the speaker, the sanitized text exactly as it rendered, and the set of
+# players close enough to read it at send time. OFF by default: enabling means chat content
+# is written to disk - a deliberate operator decision, not something a plugin should silently
+# do. Writing is fully asynchronous; it can never block or delay a bubble.
+conversation-log:
+  enabled: false
+  # Days of files to keep, pruned when a new day file opens. 0 = never delete (default):
+  # files are kept until an operator removes them.
+  retention-days: 0
+  # Also record one "admit" line when a player walks into radius while a bubble is still
+  # up - without these, late entrants who could read the text are invisible to the record.
+  log-admits: true

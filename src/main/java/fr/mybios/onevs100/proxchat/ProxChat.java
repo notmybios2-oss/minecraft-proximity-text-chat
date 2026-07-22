@@ -5,6 +5,7 @@ import fr.mybios.onevs100.proxchat.bubble.BubbleService;
 import fr.mybios.onevs100.proxchat.command.ProxChatCommand;
 import fr.mybios.onevs100.proxchat.listener.ChatListener;
 import fr.mybios.onevs100.proxchat.listener.PlayerLifecycleListener;
+import fr.mybios.onevs100.proxchat.log.ConversationLog;
 import fr.mybios.onevs100.proxchat.rate.RateGuard;
 import java.io.IOException;
 import java.util.function.Consumer;
@@ -25,6 +26,7 @@ public final class ProxChat extends JavaPlugin {
     private ModeMachine modes;
     private BubbleService bubbles;
     private ModeStore modeStore;
+    private ConversationLog conversationLog;
 
     @Override
     public void onEnable() {
@@ -33,7 +35,14 @@ public final class ProxChat extends JavaPlugin {
         saveDefaultConfig();
         this.config = ProxChatConfig.from(getConfig(), w -> getLogger().warning("config: " + w));
         this.modes = new ModeMachine();
-        this.bubbles = new BubbleService(this, () -> config, () -> modes.current().renders());
+        // Constructed unconditionally (idle daemon + queue is free) so the enabled flag can flip
+        // live via /proxchat reload; the flag is checked at every capture site, and the first
+        // captured event is what opens the day file. Retention is a live supplier like every key.
+        this.conversationLog = new ConversationLog(
+                getDataFolder().toPath().resolve("conversation"),
+                () -> config.conversationRetentionDays(), getLogger());
+        this.bubbles = new BubbleService(this, () -> config, () -> modes.current().renders(),
+                conversationLog);
         this.modeStore = new ModeStore(getDataFolder().toPath().resolve("mode.dat"));
 
         // Crash-safe restore BEFORE listeners/commands exist, so nothing can observe a
@@ -132,6 +141,9 @@ public final class ProxChat extends JavaPlugin {
                 getLogger().warning("hot disable with bubble state for " + speakers
                         + " speaker(s) — displays despawn on chunk unload");
             }
+        }
+        if (conversationLog != null) {
+            conversationLog.close(); // bounded drain — never stalls a server stop
         }
         getLogger().info("ProxChat disabled.");
     }

@@ -20,10 +20,16 @@ public record ProxChatConfig(
         int maxMessageLength,
         int lineWidth,
         float viewRange,
-        long minMessageIntervalMs) {
+        long minMessageIntervalMs,
+        boolean conversationLogEnabled,
+        int conversationRetentionDays,
+        boolean conversationLogAdmits) {
 
     public static final ProxChatConfig DEFAULTS = new ProxChatConfig(
-            24.0, 8, 3, 1.2, 0.30, true, 96, 200, 0.5f, 750);
+            24.0, 8, 3, 1.2, 0.30, true, 96, 200, 0.5f, 750,
+            // Conversation log ships OFF, keep-forever (retention 0 = never prune — owner
+            // ruling: footage editing can happen up to a year later), admits recorded.
+            false, 0, true);
 
     public static ProxChatConfig from(ConfigurationSection root, Consumer<String> warn) {
         ConfigurationSection s = root.getConfigurationSection("bubbles");
@@ -32,6 +38,8 @@ public record ProxChatConfig(
             return DEFAULTS;
         }
         ProxChatConfig d = DEFAULTS;
+        // Missing section = all defaults: the splice mechanism for deployments predating the key.
+        ConfigurationSection log = root.getConfigurationSection("conversation-log");
         return new ProxChatConfig(
                 clamp(s.getDouble("radius-blocks", d.radiusBlocks), 1.0, 128.0, "radius-blocks", warn),
                 (int) clamp(s.getInt("lifetime-seconds", d.lifetimeSeconds), 1, 120, "lifetime-seconds", warn),
@@ -42,7 +50,13 @@ public record ProxChatConfig(
                 (int) clamp(s.getInt("max-message-length", d.maxMessageLength), 1, 512, "max-message-length", warn),
                 (int) clamp(s.getInt("line-width", d.lineWidth), 10, 1000, "line-width", warn),
                 (float) clamp(s.getDouble("view-range", d.viewRange), 0.05, 2.0, "view-range", warn),
-                (long) clamp(s.getLong("min-message-interval-ms", d.minMessageIntervalMs), 0, 60_000, "min-message-interval-ms", warn));
+                (long) clamp(s.getLong("min-message-interval-ms", d.minMessageIntervalMs), 0, 60_000, "min-message-interval-ms", warn),
+                log != null && log.getBoolean("enabled", d.conversationLogEnabled),
+                log == null ? d.conversationRetentionDays
+                        : (int) clamp(log.getInt("retention-days", d.conversationRetentionDays),
+                                0, 3650, "conversation-log.retention-days", warn),
+                log == null ? d.conversationLogAdmits
+                        : log.getBoolean("log-admits", d.conversationLogAdmits));
     }
 
     private static double clamp(double value, double min, double max, String key, Consumer<String> warn) {

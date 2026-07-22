@@ -6,9 +6,10 @@ import java.util.UUID;
  * Cross-thread-readable position sample, published by each player's heartbeat on their OWNING
  * region thread and read by every speaker's admission pass. Plain immutable data — the whole
  * point is that admission math never reads a live entity from a foreign region (the
- * known-issues landmine family; WorldWatcher poll precedent).
+ * known-issues landmine family; WorldWatcher poll precedent). Carries the name so the
+ * conversation log resolves audience names from the same snapshot the admission came from.
  */
-public record PlayerSnapshot(UUID worldId, double x, double y, double z) {
+public record PlayerSnapshot(String name, UUID worldId, double x, double y, double z) {
 
     public double distanceSquaredTo(PlayerSnapshot other) {
         double dx = x - other.x;

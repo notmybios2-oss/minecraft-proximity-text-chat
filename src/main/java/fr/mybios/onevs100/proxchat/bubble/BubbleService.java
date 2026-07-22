@@ -1,6 +1,7 @@
 package fr.mybios.onevs100.proxchat.bubble;
 
 import fr.mybios.onevs100.proxchat.ProxChatConfig;
+import fr.mybios.onevs100.proxchat.log.ConversationLog;
 import io.papermc.paper.threadedregions.scheduler.ScheduledTask;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -60,16 +61,20 @@ public final class BubbleService {
     private final Supplier<ProxChatConfig> config;
     /** Live mode-renders check — publish gate + heartbeat backstop (leave-ON race closure). */
     private final BooleanSupplier renders;
+    /** Conversation record; every call is a non-blocking enqueue, gated on the config flag. */
+    private final ConversationLog conversationLog;
 
     private final ConcurrentHashMap<UUID, PlayerSnapshot> snapshots = new ConcurrentHashMap<>();
     /** Values are thread-confined to their owner's region thread; the map itself is not. */
     private final ConcurrentHashMap<UUID, PlayerBubbles> bubbles = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<UUID, ScheduledTask> heartbeats = new ConcurrentHashMap<>();
 
-    public BubbleService(Plugin plugin, Supplier<ProxChatConfig> config, BooleanSupplier renders) {
+    public BubbleService(Plugin plugin, Supplier<ProxChatConfig> config, BooleanSupplier renders,
+                         ConversationLog conversationLog) {
         this.plugin = plugin;
         this.config = config;
         this.renders = renders;
+        this.conversationLog = conversationLog;
     }
 
     // ------------------------------------------------------------------ lifecycle wiring
@@ -168,7 +173,40 @@ public final class BubbleService {
         }
         restack(pb, cfg);
         scheduleExpiry(speaker, bubble, cfg);
-        syncAdmission(speaker, pb, cfg, display);
+        Set<UUID> audience = syncAdmission(speaker, pb, cfg, display);
+        if (cfg.conversationLogEnabled()) {
+            logMessage(speaker, text, audience, at);
+        }
+    }
+
+    /**
+     * Records a rendered bubble: sanitized text as it rendered, plus the at-send admitted set
+     * (speaker excluded) — exactly who could read it the tick it appeared. Only reached after a
+     * successful mount: a dropped bubble rendered nothing and records nothing. Non-blocking.
+     */
+    private void logMessage(Player speaker, String text, Set<UUID> audience, Location at) {
+        long tsMs = System.currentTimeMillis();
+        UUID speakerId = speaker.getUniqueId();
+        List<ConversationLog.Participant> readers = new ArrayList<>(audience.size());
+        for (UUID viewerId : audience) {
+            if (!viewerId.equals(speakerId)) {
+                readers.add(new ConversationLog.Participant(nameOf(viewerId), viewerId));
+            }
+        }
+        readers.sort(java.util.Comparator.comparing(ConversationLog.Participant::name));
+        conversationLog.submit(tsMs, ConversationLog.msgLine(tsMs, conversationLog.zone(),
+                speaker.getName(), speakerId, text, readers, speaker.getWorld().getName(),
+                at.getBlockX(), at.getBlockY(), at.getBlockZ()));
+    }
+
+    /** Names resolve from the same snapshot the admission came from; quit races fall back. */
+    private String nameOf(UUID playerId) {
+        PlayerSnapshot snapshot = snapshots.get(playerId);
+        if (snapshot != null) {
+            return snapshot.name();
+        }
+        Player online = plugin.getServer().getPlayer(playerId);
+        return online != null ? online.getName() : "unknown";
     }
 
     /** Death/quit/mode clears — MUST run on the owner's region thread. */
@@ -238,8 +276,8 @@ public final class BubbleService {
     private void heartbeat(Player player) {
         try {
             Location at = player.getLocation();
-            snapshots.put(player.getUniqueId(),
-                    new PlayerSnapshot(player.getWorld().getUID(), at.getX(), at.getY(), at.getZ()));
+            snapshots.put(player.getUniqueId(), new PlayerSnapshot(player.getName(),
+                    player.getWorld().getUID(), at.getX(), at.getY(), at.getZ()));
             PlayerBubbles pb = bubbles.get(player.getUniqueId());
             if (pb == null || pb.stack.isEmpty()) {
                 return;
@@ -349,16 +387,25 @@ public final class BubbleService {
      * Diffs desired-vs-admitted on the speaker's thread and fans show/hide out to viewer
      * threads. {@code newest} non-null = a publish: viewers already admitted only need the new
      * display (see the PlayerBubbles invariant); newly admitted viewers get the whole stack.
+     *
+     * @return the desired set — on a publish this IS the at-send audience the caller records
      */
-    private void syncAdmission(Player speaker, PlayerBubbles pb, ProxChatConfig cfg, TextDisplay newest) {
+    private Set<UUID> syncAdmission(Player speaker, PlayerBubbles pb, ProxChatConfig cfg, TextDisplay newest) {
         Set<UUID> desired = pb.sneakHidden ? Set.of() : computeDesired(speaker.getUniqueId(), cfg);
         List<TextDisplay> all = new ArrayList<>(pb.stack.size());
         for (Bubble bubble : pb.stack.elements()) {
             all.add(bubble.display());
         }
+        // Late-entrant admissions (heartbeat walk-in, sneak-rise reveal) are recorded as admit
+        // events: they could read text the at-send audience line doesn't credit them with. On a
+        // publish (newest != null) the newly admitted are already in that msg line's audience.
+        boolean logAdmits = newest == null && cfg.conversationLogEnabled() && cfg.conversationLogAdmits();
         for (UUID viewerId : desired) {
             if (pb.admitted.add(viewerId)) {
                 scheduleVisibility(viewerId, all, true);
+                if (logAdmits && !viewerId.equals(speaker.getUniqueId())) {
+                    logAdmit(speaker, viewerId);
+                }
             } else if (newest != null) {
                 scheduleVisibility(viewerId, List.of(newest), true);
             }
@@ -370,6 +417,15 @@ public final class BubbleService {
             scheduleVisibility(viewerId, all, false);
             return true;
         });
+        return desired;
+    }
+
+    private void logAdmit(Player speaker, UUID viewerId) {
+        long tsMs = System.currentTimeMillis();
+        Location at = speaker.getLocation();
+        conversationLog.submit(tsMs, ConversationLog.admitLine(tsMs, conversationLog.zone(),
+                speaker.getName(), speaker.getUniqueId(), nameOf(viewerId), viewerId,
+                speaker.getWorld().getName(), at.getBlockX(), at.getBlockY(), at.getBlockZ()));
     }
 
     /** Pure snapshot math: same world, squared distance, includes the speaker (Q2 self-view). */

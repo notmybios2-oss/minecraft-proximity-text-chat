@@ -38,6 +38,10 @@ class ProxChatConfigTest {
         assertEquals(200, d.lineWidth());
         assertEquals(0.5f, d.viewRange());
         assertEquals(750, d.minMessageIntervalMs());
+        // Conversation log (pc-016 rulings): ships OFF, keep-forever, admits recorded.
+        assertFalse(d.conversationLogEnabled());
+        assertEquals(0, d.conversationRetentionDays());
+        assertTrue(d.conversationLogAdmits());
     }
 
     @Test
@@ -54,9 +58,36 @@ class ProxChatConfigTest {
         s.set("line-width", 180);
         s.set("view-range", 0.6);
         s.set("min-message-interval-ms", 1000);
+        var log = root.createSection("conversation-log");
+        log.set("enabled", true);
+        log.set("retention-days", 45);
+        log.set("log-admits", false);
         ProxChatConfig cfg = ProxChatConfig.from(root, warnings::add);
-        assertEquals(new ProxChatConfig(32.0, 10, 2, 1.4, 0.25, false, 120, 180, 0.6f, 1000), cfg);
+        assertEquals(new ProxChatConfig(32.0, 10, 2, 1.4, 0.25, false, 120, 180, 0.6f, 1000,
+                true, 45, false), cfg);
         assertTrue(warnings.isEmpty());
+    }
+
+    @Test
+    void missingConversationLogSectionSplicesDefaultsSilently() {
+        // A deployed config predating the feature must parse warning-free with the log OFF.
+        MemoryConfiguration root = new MemoryConfiguration();
+        root.createSection("bubbles");
+        ProxChatConfig cfg = ProxChatConfig.from(root, warnings::add);
+        assertFalse(cfg.conversationLogEnabled());
+        assertEquals(0, cfg.conversationRetentionDays());
+        assertTrue(cfg.conversationLogAdmits());
+        assertTrue(warnings.isEmpty());
+    }
+
+    @Test
+    void negativeRetentionClampsToKeepForever() {
+        MemoryConfiguration root = new MemoryConfiguration();
+        root.createSection("bubbles");
+        root.createSection("conversation-log").set("retention-days", -7);
+        ProxChatConfig cfg = ProxChatConfig.from(root, warnings::add);
+        assertEquals(0, cfg.conversationRetentionDays()); // 0 = never prune
+        assertEquals(1, warnings.size());
     }
 
     @Test
