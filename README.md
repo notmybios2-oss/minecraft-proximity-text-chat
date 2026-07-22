@@ -2,7 +2,7 @@
 
 Proximity text chat for **Folia** and Paper servers — chat messages appear as floating
 speech bubbles above the speaker's head, readable only by players nearby. No sender
-names, no global broadcast, no chat logs.
+names, no global broadcast, and no chat logs unless you turn them on.
 
 ## What it does
 
@@ -16,8 +16,15 @@ a configurable radius (default 24 blocks, same world only). Bubbles stack per pl
 - **True proximity** — admission is server-authoritative: clients beyond the radius
   never *receive* the bubble entity, so a modified client cannot read distant chat.
   The client-side view range is only a render cull on top of that guarantee.
-- **Anonymous by design** — no sender name appears on any surface, and message content
-  is never logged or written to disk. Bubbles are non-persistent display entities.
+- **Anonymous by design** — no sender name appears on any player-visible surface.
+  Bubbles are non-persistent display entities, and message content is never written
+  to disk unless the operator explicitly enables the conversation log (off by default).
+- **Optional conversation log (off by default)** — a server-side record of who could
+  read what: one JSONL line per message with the sanitized text as rendered, the
+  players who could see the bubble at send time, and the world/position — plus events
+  for players who walk into range of a live bubble. Writing is fully asynchronous and
+  can never block, delay, or drop a bubble; files rotate daily and are kept forever
+  unless a retention is configured.
 - **Fail-closed** — every failure path ends in "no bubble", never in leaked, frozen,
   or truncated text.
 - **Three modes** — `ON` (bubbles replace chat), `OFF` (plugin inert, vanilla chat
@@ -70,6 +77,16 @@ Requires Folia or Paper **26.1.2 or newer** (Java 25 runtime).
 | `view-range` | `0.5` | Client render cull, as a fraction of the 64-block base |
 | `min-message-interval-ms` | `750` | Per-player minimum interval between accepted messages |
 
+| Key (under `conversation-log:`) | Default | What it does |
+|---|---|---|
+| `enabled` | `false` | Master switch for the server-side conversation log |
+| `retention-days` | `0` | Daily log files older than this are deleted; `0` = never delete |
+| `log-admits` | `true` | Also record when a player comes into range of a live bubble |
+
+Log files land in `plugins/ProxChat/conversation/bubbles-YYYY-MM-DD.jsonl`, one JSON
+object per line, flushed per line (safe to `tail -f`). All keys apply live via
+`/proxchat reload` — including flipping the log on or off.
+
 Keys missing from a deployed config fall back to their defaults, so upgrading never
 requires regenerating the file.
 
@@ -90,18 +107,18 @@ Every method is callable from any thread; mode flips are atomic, and add the
 prox-chat jar as `compileOnly` — the `…proxchat.api` package is the only intended
 import surface.
 
-## Known quirks (0.3.0)
+## Known issues (0.4.0)
 
+- The speaker's vanilla **nametag is not drawn while a bubble is mounted**; it returns
+  when the last bubble fades. This is current-client render behavior — the client owns
+  the render path of an entity with a mounted passenger, and there is no server-side
+  fix at acceptable cost. Harmless on servers that hide nametags anyway; on others it
+  reads as a brief name flicker around each message.
 - You can't see your **own** bubble in first person when looking straight up — the
   client hangs your own passenger off the head pivot. F5 and other players are
   unaffected.
-- The speaker's vanilla nametag isn't drawn while a bubble is mounted (client
-  behavior); it returns when the last bubble fades.
 - The "message too long" reply shown to the sender is currently French; localizable
   messages are planned.
-- Stopping the server while players are online can log one harmless
-  `Error occurred while disabling ProxChat` (cleanup scheduling is refused during
-  disable; bubbles are non-persistent, so nothing leaks). Fix planned for 0.4.0.
 
 ## Building
 
